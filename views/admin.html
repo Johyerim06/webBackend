@@ -1,0 +1,10 @@
+<% layout('layout') -%>
+<h2>확정 — <%= ev?.title %></h2>
+<form method="post" action="/events/<%= ev._id %>/confirm">
+  <label>start ISO<input name="start" /></label>
+  <label>end ISO<input name="end" /></label>
+  <button type="submit">이 시간으로 확정</button>
+</form>
+
+
+

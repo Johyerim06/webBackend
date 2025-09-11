@@ -1,0 +1,15 @@
+<% layout('layout') -%>
+<h2>일정 만들기</h2>
+<form method="post" action="/events">
+  <input type="hidden" name="club" value="<%= clubId %>" />
+  <label>제목<input name="title" value="모각코" /></label><br/>
+  <label>설명<textarea name="description">이번 주 모임</textarea></label><br/>
+  <label>시작<input type="datetime-local" name="windowStart" required /></label>
+  <label>끝<input type="datetime-local" name="windowEnd" required /></label><br/>
+  <label>장소명<input name="location[name]" /></label>
+  <label>주소<input name="location[address]" /></label>
+  <button type="submit">저장</button>
+</form>
+
+
+

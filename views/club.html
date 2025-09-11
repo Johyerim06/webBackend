@@ -1,0 +1,12 @@
+<% layout('layout') -%>
+<h2><%= club?.name %></h2>
+<p><%= club?.description %></p>
+<ul>
+  <% (club?.notices||[]).forEach(n=> { %>
+    <li><b><%= n.title %></b> — <%= n.content %></li>
+  <% }) %>
+</ul>
+<a href="/events/new/<%= club._id %>">일정 만들기</a>
+
+
+

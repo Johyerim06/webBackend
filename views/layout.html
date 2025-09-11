@@ -1,0 +1,32 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title><%= title || '동아리 일정' %></title>
+    <link rel="stylesheet" href="/style.css" />
+  </head>
+  <body>
+    <header>
+      <a href="/">홈</a> | <a href="/todos/club/DEMO">To-Do</a>
+      <span style="float:right">
+        <% if (userId) { %>
+          <form method="post" action="/auth/logout" style="display:inline">
+            <button type="submit">로그아웃</button>
+          </form>
+        <% } else { %>
+          <a href="/auth/kakao">카카오로 로그인</a>
+          <a href="/auth/signin" style="margin-left:8px">로그인</a>
+          <a href="/auth/signup" style="margin-left:8px">회원가입</a>
+        <% } %>
+      </span>
+    </header>
+    <main>
+      <%- body %>
+    </main>
+    <script src="/app.js"></script>
+  </body>
+</html>
+
+
+

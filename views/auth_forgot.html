@@ -1,0 +1,10 @@
+<% layout('layout') -%>
+<h2>비밀번호 찾기</h2>
+<form method="post" action="/auth/forgot">
+  <label>이메일 <input type="email" name="email" required /></label>
+  <button type="submit">임시 비밀번호 발급</button>
+</form>
+<p>데모 모드: 임시 비밀번호는 <code>changeme123</code> 로 설정됩니다.</p>
+
+
+
