@@ -6,7 +6,9 @@ export const config = {
   MONGODB_URI: process.env.MONGODB_URI || 'mongodb://localhost:27017/club_scheduler',
   KAKAO: {
     REST_API_KEY: process.env.KAKAO_REST_API_KEY || '',
-    REDIRECT_URI: process.env.KAKAO_REDIRECT_URI || 'http://localhost:4000/auth/kakao/callback',
+    REDIRECT_URI: process.env.KAKAO_REDIRECT_URI || (process.env.NODE_ENV === 'production' 
+      ? `${process.env.RENDER_EXTERNAL_URL || 'https://your-app-name.onrender.com'}/auth/kakao/callback`
+      : 'http://localhost:4000/auth/kakao/callback'),
     ADMIN_KEY: process.env.KAKAO_ADMIN_KEY || '',
     CLIENT_SECRET: process.env.KAKAO_CLIENT_SECRET || ''
   }

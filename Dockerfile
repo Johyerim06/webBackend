@@ -13,10 +13,9 @@ RUN npm ci --only=production
 # 4) Copy source
 COPY . .
 
-# 5) Expose runtime port (Cloudtype respects $PORT)
+# 5) Expose runtime port (Render respects $PORT)
 ENV NODE_ENV=production
-ENV PORT=4000
-EXPOSE 4000
+EXPOSE $PORT
 
 # 6) Start command
 CMD ["npm", "start"]
