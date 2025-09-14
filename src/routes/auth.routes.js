@@ -85,10 +85,27 @@ authRouter.get('/kakao', (req,res)=>{
 // Kakao OAuth 콜백
 authRouter.get('/kakao/callback', async (req,res)=>{
   try{
-    const { code } = req.query;
-    if(!code) return res.status(400).send('code missing');
+    const { code, error } = req.query;
+    
+    // 에러 처리
+    if (error) {
+      console.error('[KAKAO] OAuth error:', error);
+      return res.status(400).send(`카카오 로그인 에러: ${error}`);
+    }
+    
+    if(!code) {
+      console.error('[KAKAO] No authorization code received');
+      return res.status(400).send('인증 코드가 없습니다');
+    }
+    
+    console.log('[KAKAO] Authorization code received:', code);
+    
     const token = await exchangeToken(code);
+    console.log('[KAKAO] Token exchange successful');
+    
     const me = await getMe(token.access_token);
+    console.log('[KAKAO] User info retrieved:', me.id);
+    
     const kakaoId = String(me.id);
     const user = await User.findOneAndUpdate(
       { kakaoId },
@@ -99,10 +116,12 @@ authRouter.get('/kakao/callback', async (req,res)=>{
       },
       { upsert: true, new: true }
     );
+    
+    console.log('[KAKAO] User created/updated:', user._id);
     res.cookie('uid', String(user._id), { httpOnly: true });
     res.redirect('/');
   }catch(err){
-    console.error('[KAKAO] callback error', err?.response?.data || err?.message || err);
-    res.status(500).send('kakao oauth failed');
+    console.error('[KAKAO] callback error:', err?.response?.data || err?.message || err);
+    res.status(500).send(`카카오 로그인 실패: ${err?.message || '알 수 없는 오류'}`);
   }
 });

@@ -6,7 +6,8 @@
     "start": "node src/server.js",
     "dev": "node --watch src/server.js",
     "build": "echo 'No build step required'",
-    "postinstall": "echo 'Dependencies installed successfully'"
+    "postinstall": "echo 'Dependencies installed successfully'",
+    "vercel-build": "echo 'Vercel build completed'"
   },
   "dependencies": {
     "axios": "^1.7.7",

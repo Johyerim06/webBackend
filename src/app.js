@@ -42,5 +42,20 @@ app.use('/todos', todoRouter);
 
 app.get('/', (req,res)=> res.render('index'));
 
+// 404 에러 처리
+app.use('*', (req, res) => {
+  res.status(404).json({ error: 'Route not found' });
+});
+
+// 전역 에러 처리
+app.use((err, req, res, next) => {
+  console.error('[ERROR] Unhandled error:', err);
+  res.status(500).json({ 
+    error: process.env.NODE_ENV === 'production' 
+      ? 'Internal server error' 
+      : err.message 
+  });
+});
+
 export default app;
 
