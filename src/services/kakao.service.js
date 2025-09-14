@@ -1,23 +1,55 @@
 import axios from 'axios';
 import { config } from '../config/env.js';
 
-export function getAuthUrl(state = ''){
+export function getAuthUrl(state = '', req = null){
   const base = 'https://kauth.kakao.com/oauth/authorize';
+  
+  // 동적 리다이렉트 URI 생성
+  let redirectUri = config.KAKAO.REDIRECT_URI;
+  
+  if (req && req.headers) {
+    const host = req.headers.get ? req.headers.get('host') : req.headers.host;
+    const protocol = req.headers.get ? 
+      (req.headers.get('x-forwarded-proto') || 'https') : 
+      (req.headers['x-forwarded-proto'] || 'https');
+    
+    if (host) {
+      redirectUri = `${protocol}://${host}/auth/kakao/callback`;
+      console.log('[KAKAO] Dynamic redirect URI:', redirectUri);
+    }
+  }
+  
   const params = new URLSearchParams({
     client_id: config.KAKAO.REST_API_KEY,
-    redirect_uri: config.KAKAO.REDIRECT_URI,
+    redirect_uri: redirectUri,
     response_type: 'code',
     state
   });
   return `${base}?${params.toString()}`;
 }
 
-export async function exchangeToken(code){
+export async function exchangeToken(code, req = null){
   const url = 'https://kauth.kakao.com/oauth/token';
+  
+  // 동적 리다이렉트 URI 생성
+  let redirectUri = config.KAKAO.REDIRECT_URI;
+  
+  if (req && req.headers) {
+    const host = req.headers.get ? req.headers.get('host') : req.headers.host;
+    const protocol = req.headers.get ? 
+      (req.headers.get('x-forwarded-proto') || 'https') : 
+      (req.headers['x-forwarded-proto'] || 'https');
+    
+    if (host) {
+      redirectUri = `${protocol}://${host}/auth/kakao/callback`;
+      console.log('[KAKAO] Dynamic redirect URI for token exchange:', redirectUri);
+    }
+  }
+  
   const body = new URLSearchParams({
     grant_type: 'authorization_code',
     client_id: config.KAKAO.REST_API_KEY,
-    redirect_uri: config.KAKAO.REDIRECT_URI,
+    redirect_uri: redirectUri,
     code
   });
   if (config.KAKAO.CLIENT_SECRET) body.append('client_secret', config.KAKAO.CLIENT_SECRET);

@@ -78,7 +78,8 @@ authRouter.post('/forgot', async (req,res)=>{
 
 // Kakao OAuth 시작
 authRouter.get('/kakao', (req,res)=>{
-  const url = getAuthUrl('todo');
+  const url = getAuthUrl('todo', req);
+  console.log('[KAKAO] Generated auth URL:', url);
   res.redirect(url);
 });
 
@@ -100,7 +101,7 @@ authRouter.get('/kakao/callback', async (req,res)=>{
     
     console.log('[KAKAO] Authorization code received:', code);
     
-    const token = await exchangeToken(code);
+    const token = await exchangeToken(code, req);
     console.log('[KAKAO] Token exchange successful');
     
     const me = await getMe(token.access_token);
