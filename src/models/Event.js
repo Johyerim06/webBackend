@@ -10,6 +10,8 @@ const schema = new Schema({
   status: { type: String, enum: ['draft','collecting','voting','confirmed'], default: 'draft' },
   candidates: [{ start: Date, end: Date }],
   confirmed: { start: Date, end: Date },
+  creator: { type: Types.ObjectId, ref: 'User', required: true },
+  meetingUrl: { type: String },
   participants: [{
     name: { type: String, required: true },
     email: { type: String, required: true },

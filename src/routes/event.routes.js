@@ -12,6 +12,9 @@ eventRouter.get('/new/:clubId', (req,res)=>{
 // 생성
 eventRouter.post('/', async (req,res)=>{
   try {
+    // 모임 URL 생성
+    const meetingUrl = `${req.protocol}://${req.get('host')}/meeting/participant?id=${req.userId}`;
+    
     // 프론트엔드 데이터를 Event 모델에 맞게 변환
     const eventData = {
       title: req.body.name || req.body.title || '새 모임',
@@ -19,10 +22,16 @@ eventRouter.post('/', async (req,res)=>{
       description: req.body.description || '',
       windowStart: req.body.startDate ? new Date(req.body.startDate) : undefined,
       windowEnd: req.body.endDate ? new Date(req.body.endDate) : undefined,
-      status: 'draft'
+      status: 'draft',
+      creator: req.userId, // 생성자 ID 저장
+      meetingUrl: meetingUrl // 모임 URL 저장
     };
     
     const ev = await Event.create(eventData);
+    
+    // 생성된 모임의 실제 ID로 URL 업데이트
+    const actualMeetingUrl = `${req.protocol}://${req.get('host')}/meeting/participant?id=${ev._id}`;
+    await Event.findByIdAndUpdate(ev._id, { meetingUrl: actualMeetingUrl });
     
     // JSON 응답으로 변경 (프론트엔드 호환)
     res.status(201).json({
@@ -35,6 +44,7 @@ eventRouter.post('/', async (req,res)=>{
       endTime: req.body.endTime || '24:00',
       voting: req.body.voting || false,
       creatorId: req.userId,
+      meetingUrl: actualMeetingUrl,
       participants: [],
       createdAt: ev.createdAt,
       updatedAt: ev.updatedAt
