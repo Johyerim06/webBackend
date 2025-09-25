@@ -1,30 +1,21 @@
 import { Router } from 'express';
-import { getAuthUrl, exchangeToken, getMe } from '../services/kakao.service.js';
 import { User } from '../models/User.js';
 import bcrypt from 'bcryptjs';
 export const authRouter = Router();
 
-// 추후 카카오 OAuth 콜백/토큰 발급 라우트 추가 예정
 authRouter.get('/health', (_,res)=> res.json({ ok: true }));
 
-// 데모 로그인 폼
-authRouter.get('/login', (req,res)=>{
-  res.render('index', { title: '로그인', loginDemo: true });
-});
-
-// 데모 로그인(쿠키 세팅)
-authRouter.post('/login', (req,res)=>{
-  const uid = (req.body?.uid || '').trim();
-  const valid = /^[0-9a-fA-F]{24}$/.test(uid);
-  const finalUid = valid ? uid : '000000000000000000000001';
-  res.cookie('uid', finalUid, { httpOnly: true });
-  res.redirect('back');
-});
 
 // 로그아웃(쿠키 삭제)
 authRouter.post('/logout', (req,res)=>{
   res.clearCookie('uid');
-  res.redirect('back');
+  
+  // API 요청인 경우 JSON 응답, 일반 요청인 경우 리다이렉트
+  if (req.headers['content-type']?.includes('application/json') || req.headers['accept']?.includes('application/json')) {
+    res.json({ message: '로그아웃되었습니다' });
+  } else {
+    res.redirect('back');
+  }
 });
 
 // 로컬: 로그인/회원가입/비번찾기 화면
@@ -38,91 +29,150 @@ authRouter.get('/forgot', (req,res)=>{
   res.render('auth_forgot', { title: '비밀번호 찾기' });
 });
 
-// 작성하신 views/login.html을 직접 미리보기
-authRouter.get('/preview/login', (req,res)=>{
-  res.render('login', { title: '로그인(미리보기)' });
-});
 
 // 로컬: 회원가입
 authRouter.post('/signup', async (req,res)=>{
-  const { email, password, name } = req.body || {};
-  if(!email || !password) return res.status(400).send('email and password required');
-  const hash = await bcrypt.hash(password, 10);
-  const user = await User.create({ email, passwordHash: hash, name: name || email.split('@')[0] });
-  res.cookie('uid', String(user._id), { httpOnly: true });
-  res.redirect('/');
+  try {
+    console.log('[AUTH] Signup request body:', req.body);
+    const { email, password, name } = req.body || {};
+    
+    // 입력 검증
+    if(!email || !password) {
+      console.log('[AUTH] Missing required fields:', { email: !!email, password: !!password });
+      return res.status(400).json({ error: '이메일과 비밀번호는 필수입니다' });
+    }
+    
+    if(password.length < 6) {
+      console.log('[AUTH] Password too short:', password.length);
+      return res.status(400).json({ error: '비밀번호는 최소 6자 이상이어야 합니다' });
+    }
+    
+    // 이메일 중복 확인
+    const existingUser = await User.findOne({ email });
+    if(existingUser) {
+      console.log('[AUTH] Email already exists:', email);
+      return res.status(400).json({ error: '이미 존재하는 이메일입니다' });
+    }
+    
+    const hash = await bcrypt.hash(password, 12);
+    console.log('[AUTH] Creating user with data:', { email, name: name || email.split('@')[0] });
+    
+    const user = await User.create({ 
+      email, 
+      passwordHash: hash, 
+      name: name || email.split('@')[0] 
+    });
+    
+    console.log('[AUTH] User created successfully:', { 
+      id: user._id, 
+      email: user.email, 
+      name: user.name,
+      database: user.db?.databaseName || 'unknown'
+    });
+    
+    res.cookie('uid', String(user._id), { 
+      httpOnly: true, 
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'strict'
+    });
+    
+    // API 요청인 경우 JSON 응답, 일반 요청인 경우 리다이렉트
+    if (req.headers['content-type']?.includes('application/json') || req.headers['accept']?.includes('application/json')) {
+      res.json({ 
+        user: {
+          id: user._id,
+          name: user.name,
+          username: user.name, // 호환성을 위해
+          email: user.email,
+          role: 'member'
+        },
+        token: 'dummy-token' // 실제로는 JWT 토큰을 사용해야 함
+      });
+    } else {
+      res.redirect('/');
+    }
+  } catch (error) {
+    console.error('[AUTH] Signup error:', error);
+    console.error('[AUTH] Error details:', error.message);
+    res.status(500).json({ error: '회원가입 중 오류가 발생했습니다' });
+  }
 });
 
 // 로컬: 로그인
 authRouter.post('/signin', async (req,res)=>{
-  const { email, password } = req.body || {};
-  const user = await User.findOne({ email });
-  if(!user) return res.status(401).send('invalid credentials');
-  const ok = await bcrypt.compare(password || '', user.passwordHash || '');
-  if(!ok) return res.status(401).send('invalid credentials');
-  res.cookie('uid', String(user._id), { httpOnly: true });
-  res.redirect('/');
+  try {
+    console.log('[AUTH] Signin request body:', req.body);
+    console.log('[AUTH] Signin headers:', req.headers);
+    const { email, password } = req.body || {};
+    
+    if(!email || !password) {
+      console.log('[AUTH] Missing fields:', { email: !!email, password: !!password });
+      return res.status(400).json({ error: '이메일과 비밀번호를 입력해주세요' });
+    }
+    
+    const user = await User.findOne({ email });
+    if(!user) {
+      return res.status(401).json({ error: '이메일 또는 비밀번호가 올바르지 않습니다' });
+    }
+    
+    const isValidPassword = await bcrypt.compare(password, user.passwordHash);
+    if(!isValidPassword) {
+      return res.status(401).json({ error: '이메일 또는 비밀번호가 올바르지 않습니다' });
+    }
+    
+    res.cookie('uid', String(user._id), { 
+      httpOnly: true, 
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'strict'
+    });
+    
+    // API 요청인 경우 JSON 응답, 일반 요청인 경우 리다이렉트
+    if (req.headers['content-type']?.includes('application/json') || req.headers['accept']?.includes('application/json')) {
+      res.json({ 
+        user: {
+          id: user._id,
+          name: user.name,
+          username: user.name, // 호환성을 위해
+          email: user.email,
+          role: 'member'
+        },
+        token: 'dummy-token' // 실제로는 JWT 토큰을 사용해야 함
+      });
+    } else {
+      res.redirect('/');
+    }
+  } catch (error) {
+    console.error('[AUTH] Signin error:', error);
+    res.status(500).json({ error: '로그인 중 오류가 발생했습니다' });
+  }
 });
 
 // 로컬: 비밀번호 초기화(데모. 실제로는 토큰 이메일 발송 필요)
 authRouter.post('/forgot', async (req,res)=>{
-  const { email } = req.body || {};
-  if(!email) return res.status(400).send('email required');
-  const user = await User.findOne({ email });
-  if(!user) return res.status(200).send('ok');
-  const hash = await bcrypt.hash('changeme123', 10);
-  user.passwordHash = hash;
-  await user.save();
-  res.send('temporary password set: changeme123');
-});
-
-// Kakao OAuth 시작
-authRouter.get('/kakao', (req,res)=>{
-  const url = getAuthUrl('todo', req);
-  console.log('[KAKAO] Generated auth URL:', url);
-  res.redirect(url);
-});
-
-// Kakao OAuth 콜백
-authRouter.get('/kakao/callback', async (req,res)=>{
-  try{
-    const { code, error } = req.query;
-    
-    // 에러 처리
-    if (error) {
-      console.error('[KAKAO] OAuth error:', error);
-      return res.status(400).send(`카카오 로그인 에러: ${error}`);
+  try {
+    const { email } = req.body || {};
+    if(!email) {
+      return res.status(400).json({ error: '이메일을 입력해주세요' });
     }
     
-    if(!code) {
-      console.error('[KAKAO] No authorization code received');
-      return res.status(400).send('인증 코드가 없습니다');
+    const user = await User.findOne({ email });
+    if(!user) {
+      // 보안상 사용자가 존재하지 않아도 성공 메시지 반환
+      return res.status(200).json({ message: '비밀번호 재설정 링크가 이메일로 전송되었습니다' });
     }
     
-    console.log('[KAKAO] Authorization code received:', code);
+    // 임시 비밀번호 생성 (실제로는 토큰 기반 재설정 링크를 이메일로 발송)
+    const tempPassword = 'changeme123';
+    const hash = await bcrypt.hash(tempPassword, 12);
+    user.passwordHash = hash;
+    await user.save();
     
-    const token = await exchangeToken(code, req);
-    console.log('[KAKAO] Token exchange successful');
-    
-    const me = await getMe(token.access_token);
-    console.log('[KAKAO] User info retrieved:', me.id);
-    
-    const kakaoId = String(me.id);
-    const user = await User.findOneAndUpdate(
-      { kakaoId },
-      {
-        kakaoId,
-        name: me.properties?.nickname || '카카오유저',
-        profileImage: me.properties?.profile_image || ''
-      },
-      { upsert: true, new: true }
-    );
-    
-    console.log('[KAKAO] User created/updated:', user._id);
-    res.cookie('uid', String(user._id), { httpOnly: true });
-    res.redirect('/');
-  }catch(err){
-    console.error('[KAKAO] callback error:', err?.response?.data || err?.message || err);
-    res.status(500).send(`카카오 로그인 실패: ${err?.message || '알 수 없는 오류'}`);
+    res.status(200).json({ 
+      message: '임시 비밀번호가 설정되었습니다',
+      tempPassword: tempPassword // 개발 환경에서만 표시
+    });
+  } catch (error) {
+    console.error('[AUTH] Forgot password error:', error);
+    res.status(500).json({ error: '비밀번호 재설정 중 오류가 발생했습니다' });
   }
 });

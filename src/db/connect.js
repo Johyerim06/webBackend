@@ -8,8 +8,12 @@ export async function connectDB(){
     }
     
     console.log('[DB] Connecting to MongoDB...');
+    console.log('[DB] MongoDB URI:', config.MONGODB_URI.replace(/\/\/.*@/, '//***:***@')); // 비밀번호 숨김
     await mongoose.connect(config.MONGODB_URI);
     console.log('[DB] Connected successfully');
+    console.log('[DB] Database name:', mongoose.connection.db.databaseName);
+    console.log('[DB] Host:', mongoose.connection.host);
+    console.log('[DB] Port:', mongoose.connection.port);
     
     // 연결 에러 처리
     mongoose.connection.on('error', (err) => {

@@ -1,0 +1,462 @@
+{
+  "info": {
+    "name": "Club Scheduler API",
+    "description": "동아리 일정 관리 시스템 API",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:4000",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "Authentication",
+      "item": [
+        {
+          "name": "Health Check",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/auth/health",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "health"]
+            }
+          }
+        },
+        {
+          "name": "Signup",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"테스트 사용자\",\n  \"email\": \"test@example.com\",\n  \"password\": \"123456\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/signup",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "signup"]
+            }
+          }
+        },
+        {
+          "name": "Signin",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"test1@test.com\",\n  \"password\": \"123456\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/signin",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "signin"]
+            }
+          }
+        },
+        {
+          "name": "Logout",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/auth/logout",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "logout"]
+            }
+          }
+        },
+        {
+          "name": "Forgot Password",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"test@example.com\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/forgot",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "forgot"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Club",
+      "item": [
+        {
+          "name": "Get Club",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/club/:id",
+              "host": ["{{baseUrl}}"],
+              "path": ["club", ":id"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "CLUB_ID_HERE"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Create Club",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"테스트 동아리\",\n  \"description\": \"테스트용 동아리입니다\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/club",
+              "host": ["{{baseUrl}}"],
+              "path": ["club"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Events",
+      "item": [
+        {
+          "name": "Get Event Form",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/events/new/:clubId",
+              "host": ["{{baseUrl}}"],
+              "path": ["events", "new", ":clubId"],
+              "variable": [
+                {
+                  "key": "clubId",
+                  "value": "CLUB_ID_HERE"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Create Event",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"테스트 이벤트\",\n  \"description\": \"테스트용 이벤트입니다\",\n  \"clubId\": \"CLUB_ID_HERE\",\n  \"startDate\": \"2024-01-01T10:00:00Z\",\n  \"endDate\": \"2024-01-01T12:00:00Z\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/events",
+              "host": ["{{baseUrl}}"],
+              "path": ["events"]
+            }
+          }
+        },
+        {
+          "name": "Get Event",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/events/:id",
+              "host": ["{{baseUrl}}"],
+              "path": ["events", ":id"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "EVENT_ID_HERE"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Event Schedule",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/events/:id/schedule",
+              "host": ["{{baseUrl}}"],
+              "path": ["events", ":id", "schedule"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "EVENT_ID_HERE"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Create Event Candidates",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"candidates\": [\n    \"2024-01-01T10:00:00Z\",\n    \"2024-01-01T14:00:00Z\",\n    \"2024-01-02T10:00:00Z\"\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/events/:id/candidates",
+              "host": ["{{baseUrl}}"],
+              "path": ["events", ":id", "candidates"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "EVENT_ID_HERE"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Event Vote",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/events/:id/vote",
+              "host": ["{{baseUrl}}"],
+              "path": ["events", ":id", "vote"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "EVENT_ID_HERE"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Confirm Event",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"selectedTime\": \"2024-01-01T10:00:00Z\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/events/:id/confirm",
+              "host": ["{{baseUrl}}"],
+              "path": ["events", ":id", "confirm"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "EVENT_ID_HERE"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Availability",
+      "item": [
+        {
+          "name": "Submit Availability",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"slots\": [\n    \"2024-01-01T10:00:00Z\",\n    \"2024-01-01T14:00:00Z\"\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/availability/:eventId",
+              "host": ["{{baseUrl}}"],
+              "path": ["availability", ":eventId"],
+              "variable": [
+                {
+                  "key": "eventId",
+                  "value": "EVENT_ID_HERE"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Votes",
+      "item": [
+        {
+          "name": "Submit Vote",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"option\": \"2024-01-01T10:00:00Z\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/votes/:eventId",
+              "host": ["{{baseUrl}}"],
+              "path": ["votes", ":eventId"],
+              "variable": [
+                {
+                  "key": "eventId",
+                  "value": "EVENT_ID_HERE"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Vote Result",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/votes/:eventId/result",
+              "host": ["{{baseUrl}}"],
+              "path": ["votes", ":eventId", "result"],
+              "variable": [
+                {
+                  "key": "eventId",
+                  "value": "EVENT_ID_HERE"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Todos",
+      "item": [
+        {
+          "name": "Get Club Todos",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/todos/club/:clubId",
+              "host": ["{{baseUrl}}"],
+              "path": ["todos", "club", ":clubId"],
+              "variable": [
+                {
+                  "key": "clubId",
+                  "value": "CLUB_ID_HERE"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Create Todo",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"테스트 할일\",\n  \"description\": \"테스트용 할일입니다\",\n  \"clubId\": \"CLUB_ID_HERE\",\n  \"assignedTo\": \"USER_ID_HERE\",\n  \"dueDate\": \"2024-01-01T23:59:59Z\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/todos",
+              "host": ["{{baseUrl}}"],
+              "path": ["todos"]
+            }
+          }
+        },
+        {
+          "name": "Move Todo",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"completed\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/todos/:id/move",
+              "host": ["{{baseUrl}}"],
+              "path": ["todos", ":id", "move"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "TODO_ID_HERE"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}
