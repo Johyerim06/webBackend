@@ -305,6 +305,7 @@ const EventManagementPage: React.FC = () => {
   const [startDate, setStartDate] = useState<Date | null>(new Date());
   const [endDate, setEndDate] = useState<Date | null>(new Date());
   const [selectedSlots, setSelectedSlots] = useState<Set<string>>(new Set());
+  const [weeklySelections, setWeeklySelections] = useState<Map<string, Set<string>>>(new Map());
   const [isDragging, setIsDragging] = useState(false);
   const [dragStart, setDragStart] = useState<{time: string, day: string, isSelected: boolean} | null>(null);
   const [showEarlyHours, setShowEarlyHours] = useState(false);
@@ -431,9 +432,58 @@ const EventManagementPage: React.FC = () => {
     }
   }, [selectedDate]);
 
+  // 주별 선택 상태를 관리하는 헬퍼 함수들
+  const getWeekKey = (date: Date): string => {
+    const year = date.getFullYear();
+    const week = getWeekNumber(date);
+    return `${year}-W${week}`;
+  };
+
+  const getWeekNumber = (date: Date): number => {
+    const firstDayOfYear = new Date(date.getFullYear(), 0, 1);
+    const pastDaysOfYear = (date.getTime() - firstDayOfYear.getTime()) / 86400000;
+    return Math.ceil((pastDaysOfYear + firstDayOfYear.getDay() + 1) / 7);
+  };
+
+  const saveCurrentWeekSelection = () => {
+    if (selectedDate && selectedSlots.size > 0) {
+      const weekKey = getWeekKey(selectedDate);
+      setWeeklySelections(prev => {
+        const newMap = new Map(prev);
+        newMap.set(weekKey, new Set(selectedSlots));
+        return newMap;
+      });
+    }
+  };
+
+  const loadWeekSelection = (date: Date) => {
+    const weekKey = getWeekKey(date);
+    const weekSelection = weeklySelections.get(weekKey);
+    if (weekSelection) {
+      setSelectedSlots(new Set(weekSelection));
+    } else {
+      setSelectedSlots(new Set());
+    }
+  };
+
   // 선택된 날짜의 주에 해당하는 개인일정 데이터를 불러오는 함수
   const loadWeekSchedule = async (date: Date) => {
     try {
+      // 먼저 임시 저장된 선택사항이 있는지 확인
+      const weekKey = getWeekKey(date);
+      const tempSelection = weeklySelections.get(weekKey);
+      
+      if (tempSelection && tempSelection.size > 0) {
+        // 임시 저장된 선택사항이 있으면 그것을 사용
+        setSelectedSlots(new Set(tempSelection));
+        console.log('임시 저장된 주간 선택사항 로드:', {
+          weekKey,
+          tempSlots: Array.from(tempSelection)
+        });
+        return;
+      }
+
+      // 임시 저장된 선택사항이 없으면 DB에서 로드
       const personalEvents = await getPersonalEvents();
       if (!personalEvents || personalEvents.length === 0) {
         // 개인일정이 없으면 빈 상태로 설정
@@ -468,7 +518,7 @@ const EventManagementPage: React.FC = () => {
       }
       
       setSelectedSlots(weekTimeSlots);
-      console.log('주간 일정 로드:', {
+      console.log('DB에서 주간 일정 로드:', {
         selectedDate: date.toISOString().split('T')[0],
         weekDates: weekDates.map(d => d.toISOString().split('T')[0]),
         loadedSlots: Array.from(weekTimeSlots)
@@ -517,6 +567,16 @@ const EventManagementPage: React.FC = () => {
     }
     
     setSelectedSlots(newSelectedSlots);
+    
+    // 임시 저장
+    if (selectedDate) {
+      const weekKey = getWeekKey(selectedDate);
+      setWeeklySelections(prev => {
+        const newMap = new Map(prev);
+        newMap.set(weekKey, new Set(newSelectedSlots));
+        return newMap;
+      });
+    }
   };
 
   const handleMouseDown = (time: string, day: string) => {
@@ -557,6 +617,16 @@ const EventManagementPage: React.FC = () => {
       }
       
       setSelectedSlots(newSelectedSlots);
+      
+      // 임시 저장
+      if (selectedDate) {
+        const weekKey = getWeekKey(selectedDate);
+        setWeeklySelections(prev => {
+          const newMap = new Map(prev);
+          newMap.set(weekKey, new Set(newSelectedSlots));
+          return newMap;
+        });
+      }
     }
   };
 
