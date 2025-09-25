@@ -125,7 +125,7 @@ export const addParticipant = async (meetingId: string, participantData: {
   email: string;
   availability: Availability[];
 }): Promise<void> => {
-  const response = await fetch(`${API_BASE_URL}/meetings/${meetingId}/participant`, {
+  const response = await fetch(`${API_BASE_URL}/meetings/${meetingId}/participants`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',

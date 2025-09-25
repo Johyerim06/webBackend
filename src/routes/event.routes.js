@@ -11,8 +11,38 @@ eventRouter.get('/new/:clubId', (req,res)=>{
 
 // 생성
 eventRouter.post('/', async (req,res)=>{
-  const ev = await Event.create(req.body);
-  res.redirect(`/events/${ev._id}/schedule`);
+  try {
+    // 프론트엔드 데이터를 Event 모델에 맞게 변환
+    const eventData = {
+      title: req.body.name || req.body.title || '새 모임',
+      club: req.body.club || req.userId, // 임시로 userId를 club으로 사용
+      description: req.body.description || '',
+      windowStart: req.body.startDate ? new Date(req.body.startDate) : undefined,
+      windowEnd: req.body.endDate ? new Date(req.body.endDate) : undefined,
+      status: 'draft'
+    };
+    
+    const ev = await Event.create(eventData);
+    
+    // JSON 응답으로 변경 (프론트엔드 호환)
+    res.status(201).json({
+      id: ev._id,
+      name: ev.title,
+      title: ev.title,
+      startDate: ev.windowStart?.toISOString().split('T')[0],
+      endDate: ev.windowEnd?.toISOString().split('T')[0],
+      startTime: req.body.startTime || '00:00',
+      endTime: req.body.endTime || '24:00',
+      voting: req.body.voting || false,
+      creatorId: req.userId,
+      participants: [],
+      createdAt: ev.createdAt,
+      updatedAt: ev.updatedAt
+    });
+  } catch (error) {
+    console.error('Event creation error:', error);
+    res.status(400).json({ error: '모임 생성에 실패했습니다.' });
+  }
 });
 
 // 상세
@@ -44,4 +74,50 @@ eventRouter.post('/:id/confirm', async (req,res)=>{
   const { start, end } = req.body;
   const ev = await Event.findByIdAndUpdate(req.params.id, { status:'confirmed', confirmed: { start, end } }, { new: true });
   res.render('admin', { ev, ok:true });
+});
+
+// 참여자 추가
+eventRouter.post('/:id/participants', async (req, res) => {
+  try {
+    const { name, email, availability } = req.body;
+    const meetingId = req.params.id;
+
+    if (!name || !email) {
+      return res.status(400).json({ error: '이름과 이메일을 입력해주세요.' });
+    }
+
+    // 모임 존재 확인
+    const meeting = await Event.findById(meetingId);
+    if (!meeting) {
+      return res.status(404).json({ error: '모임을 찾을 수 없습니다.' });
+    }
+
+    // 참여자 정보를 모임에 저장 (간단한 방식)
+    const participant = {
+      name,
+      email,
+      availability: availability || [],
+      joinedAt: new Date()
+    };
+
+    // 모임의 participants 배열에 추가 (임시 저장)
+    if (!meeting.participants) {
+      meeting.participants = [];
+    }
+    meeting.participants.push(participant);
+    await meeting.save();
+
+    res.status(201).json({
+      message: '참여자가 성공적으로 등록되었습니다.',
+      participant: {
+        name: participant.name,
+        email: participant.email,
+        availability: participant.availability
+      }
+    });
+
+  } catch (error) {
+    console.error('Participant registration error:', error);
+    res.status(500).json({ error: '참여자 등록 중 오류가 발생했습니다.' });
+  }
 });

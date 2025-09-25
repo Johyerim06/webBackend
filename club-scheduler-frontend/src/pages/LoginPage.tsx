@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { colors, typography, spacing, shadows } from '../styles/design-tokens';
 
@@ -120,6 +120,17 @@ const ErrorMessage = styled.div`
   border: 1px solid #FECACA;
 `;
 
+const InfoMessage = styled.div`
+  color: ${colors.primary};
+  font-size: ${typography.fontSize.sm};
+  text-align: center;
+  padding: ${spacing.sm};
+  background-color: #EFF6FF;
+  border-radius: 8px;
+  border: 1px solid #BFDBFE;
+  margin-bottom: ${spacing.lg};
+`;
+
 const LoginPage: React.FC = () => {
   const [credentials, setCredentials] = useState({
     email: '',
@@ -133,6 +144,11 @@ const LoginPage: React.FC = () => {
   });
   const { login } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
+  
+  // 리다이렉트 경로 가져오기
+  const redirectTo = location.state?.redirectTo || '/';
+  const message = location.state?.message || '';
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -156,8 +172,8 @@ const LoginPage: React.FC = () => {
 
     try {
       await login(credentials);
-      // 로그인 성공 시 홈페이지로 이동
-      navigate('/');
+      // 로그인 성공 시 리다이렉트 경로로 이동
+      navigate(redirectTo);
     } catch (err: any) {
       console.log('Login error:', err.response?.data);
       setError(err.response?.data?.error || '로그인에 실패했습니다.');
@@ -214,6 +230,8 @@ const LoginPage: React.FC = () => {
         </LogoSection>
         
         <Title>로그인</Title>
+        
+        {message && <InfoMessage>{message}</InfoMessage>}
         
         <Form onSubmit={handleSubmit}>
           <FieldContainer>

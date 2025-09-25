@@ -1,9 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import styled from 'styled-components';
+import DatePicker from 'react-datepicker';
+import 'react-datepicker/dist/react-datepicker.css';
 import { colors, typography, spacing, shadows } from '../styles/design-tokens';
 import { getMeeting, addParticipant } from '../services/meetingService';
-import { Meeting, Availability, TimeSlot } from '../services/meetingService';
+import { Meeting, Availability } from '../services/meetingService';
+import { useAuth } from '../contexts/AuthContext';
 
 const PageContainer = styled.div`
   min-height: 100vh;
@@ -76,52 +79,30 @@ const CalendarContainer = styled.div`
   box-shadow: ${shadows.sm};
 `;
 
-const TimeSection = styled.div`
-  background-color: ${colors.backgroundSecondary};
-  border-radius: 12px;
-  padding: ${spacing.lg};
-`;
-
-const TimeLabel = styled.label`
-  display: block;
-  font-size: ${typography.fontSize.base};
-  font-weight: ${typography.fontWeight.medium};
-  color: ${colors.textPrimary};
-  margin-bottom: ${spacing.sm};
-`;
-
-const TimeInput = styled.input`
+const DatePickerWrapper = styled.div`
   width: 100%;
-  padding: ${spacing.md};
-  border: 1px solid #e0e0e0;
-  border-radius: 8px;
-  font-size: ${typography.fontSize.base};
-  background-color: white;
   
-  &:focus {
-    outline: none;
-    border-color: ${colors.primary};
+  .react-datepicker-wrapper {
+    width: 100%;
   }
-`;
-
-const TimeButtons = styled.div`
-  display: flex;
-  gap: ${spacing.sm};
-  margin-top: ${spacing.sm};
-`;
-
-const TimeButton = styled.button<{ $active?: boolean }>`
-  padding: ${spacing.sm} ${spacing.md};
-  border: 1px solid ${props => props.$active ? colors.primary : '#e0e0e0'};
-  border-radius: 6px;
-  background-color: ${props => props.$active ? colors.primary : 'white'};
-  color: ${props => props.$active ? 'white' : colors.textPrimary};
-  font-size: ${typography.fontSize.sm};
-  cursor: pointer;
-  transition: all 0.2s ease;
   
-  &:hover {
-    border-color: ${colors.primary};
+  .react-datepicker__input-container {
+    width: 100%;
+  }
+  
+  .react-datepicker__input-container input {
+    width: 100%;
+    padding: ${spacing.lg};
+    border: 1px solid ${colors.border};
+    border-radius: 12px;
+    font-size: ${typography.fontSize.base};
+    font-family: ${typography.fontFamily.primary};
+    transition: border-color 0.2s ease;
+
+    &:focus {
+      outline: none;
+      border-color: ${colors.primary};
+    }
   }
 `;
 
@@ -130,31 +111,145 @@ const RightPanel = styled.div`
   flex-direction: column;
 `;
 
-const ScheduleSection = styled.div`
+const TimeSection = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: ${spacing.lg};
+`;
+
+const TimeGridContainer = styled.div`
+  margin: ${spacing.lg} 0;
+`;
+
+const ToggleButton = styled.button`
   background-color: ${colors.backgroundSecondary};
-  border-radius: 12px;
-  padding: ${spacing.lg};
-  flex: 1;
-`;
-
-const ScheduleTitle = styled.h3`
-  font-size: ${typography.fontSize.lg};
-  font-weight: ${typography.fontWeight.medium};
   color: ${colors.textPrimary};
+  border: 1px solid ${colors.border};
+  border-radius: 8px;
+  padding: ${spacing.sm} ${spacing.md};
+  font-size: ${typography.fontSize.sm};
+  cursor: pointer;
+  transition: all 0.2s ease;
   margin-bottom: ${spacing.md};
+
+  &:hover {
+    background-color: ${colors.primary};
+    color: white;
+  }
 `;
 
-const ScheduleGrid = styled.div`
-  background-color: white;
+const TimeGrid = styled.div`
+  display: grid;
+  grid-template-columns: 60px repeat(7, 1fr);
+  gap: 1px;
+  background-color: ${colors.border};
+  border: 1px solid ${colors.border};
   border-radius: 8px;
-  padding: ${spacing.md};
-  box-shadow: ${shadows.sm};
-  min-height: 300px;
+  overflow: hidden;
+  max-height: 400px;
+  overflow-y: auto;
+`;
+
+const TimeSlotCell = styled.div<{ $isHeader?: boolean; $isSelected?: boolean }>`
+  background-color: ${props => 
+    props.$isHeader 
+      ? colors.backgroundSecondary 
+      : props.$isSelected 
+        ? colors.primary 
+        : 'white'
+  };
+  color: ${props => 
+    props.$isHeader 
+      ? colors.textPrimary 
+      : props.$isSelected 
+        ? 'white' 
+        : colors.textPrimary
+  };
+  padding: ${spacing.sm};
+  font-size: ${typography.fontSize.sm};
+  text-align: center;
+  cursor: ${props => props.$isHeader ? 'default' : 'pointer'};
+  transition: all 0.1s ease;
+  min-height: 30px;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: ${colors.textSecondary};
-  font-size: ${typography.fontSize.base};
+  font-weight: ${props => props.$isHeader ? typography.fontWeight.medium : typography.fontWeight.normal};
+
+  &:hover {
+    background-color: ${props => 
+      props.$isHeader 
+        ? colors.backgroundSecondary 
+        : props.$isSelected 
+          ? colors.primaryDark 
+          : colors.backgroundSecondary
+    };
+  }
+`;
+
+// react-datepicker 커스텀 스타일
+const DatePickerStyles = styled.div`
+  .custom-datepicker {
+    width: 100%;
+  }
+
+  .react-datepicker {
+    border: 1px solid ${colors.border};
+    border-radius: 12px;
+    box-shadow: ${shadows.large};
+    font-family: ${typography.fontFamily.primary};
+  }
+
+  .react-datepicker__header {
+    background-color: ${colors.background};
+    border-bottom: 1px solid ${colors.border};
+    border-radius: 12px 12px 0 0;
+  }
+
+  .react-datepicker__current-month {
+    color: ${colors.textPrimary};
+    font-weight: ${typography.fontWeight.medium};
+  }
+
+  .react-datepicker__day-name {
+    color: ${colors.textLight};
+    font-weight: ${typography.fontWeight.medium};
+  }
+
+  .react-datepicker__day {
+    color: ${colors.textPrimary};
+    
+    &:hover {
+      background-color: ${colors.backgroundSecondary};
+    }
+  }
+
+  .react-datepicker__day--selected {
+    background-color: ${colors.primary};
+    color: ${colors.background};
+    
+    &:hover {
+      background-color: ${colors.primaryDark};
+    }
+  }
+
+  .react-datepicker__day--today {
+    background-color: ${colors.backgroundSecondary};
+    color: ${colors.textPrimary};
+  }
+
+  .react-datepicker__navigation {
+    border: none;
+    background: none;
+    
+    &:hover {
+      background-color: ${colors.backgroundSecondary};
+    }
+  }
+
+  .react-datepicker__navigation-icon::before {
+    border-color: ${colors.textPrimary};
+  }
 `;
 
 const CompleteButton = styled.button`
@@ -180,14 +275,58 @@ const MeetingParticipantPage: React.FC = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const meetingId = searchParams.get('id') || '';
+  const { user } = useAuth();
   
   const [meeting, setMeeting] = useState<Meeting | null>(null);
-  const [selectedTime, setSelectedTime] = useState('09:00');
-  const [timePeriod, setTimePeriod] = useState<'AM' | 'PM'>('AM');
-  const [selectedDates, setSelectedDates] = useState<Date[]>([]);
-  const [participantName, setParticipantName] = useState('');
-  const [participantEmail, setParticipantEmail] = useState('');
+  const [selectedDate, setSelectedDate] = useState<Date | null>(new Date());
+  const [selectedSlots, setSelectedSlots] = useState<Set<string>>(new Set());
+  const [isDragging, setIsDragging] = useState(false);
+  const [dragStart, setDragStart] = useState<{time: string, day: string, isSelected: boolean} | null>(null);
+  const [showEarlyHours, setShowEarlyHours] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+
+  // 일요일부터 시작하는 요일 순서
+  const weekDays = ['sun', 'mon', 'tue', 'wed', 'thr', 'fri', 'sat'];
+
+  // 선택된 날짜로부터 일주일 계산 (일요일부터 시작)
+  const getWeekDates = (date: Date) => {
+    const dates = [];
+    const dayOfWeek = date.getDay(); // 0=일요일, 1=월요일, ..., 6=토요일
+    const startOfWeek = new Date(date);
+    
+    // 일요일부터 시작하도록 조정
+    startOfWeek.setDate(date.getDate() - dayOfWeek);
+    
+    for (let i = 0; i < 7; i++) {
+      const weekDate = new Date(startOfWeek);
+      weekDate.setDate(startOfWeek.getDate() + i);
+      dates.push(weekDate);
+    }
+    
+    return dates;
+  };
+
+  // 00:00부터 24:00까지 30분 단위로 시간 슬롯 생성
+  const generateTimeSlots = () => {
+    const slots = [];
+    for (let hour = 0; hour < 24; hour++) {
+      for (let minute = 0; minute < 60; minute += 30) {
+        const timeString = `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
+        slots.push(timeString);
+      }
+    }
+    return slots;
+  };
+
+  const allTimeSlots = generateTimeSlots();
+  const earlyTimeSlots = allTimeSlots.filter(time => {
+    const [hour] = time.split(':').map(Number);
+    return hour < 7;
+  });
+  const regularTimeSlots = allTimeSlots.filter(time => {
+    const [hour] = time.split(':').map(Number);
+    return hour >= 7;
+  });
 
   useEffect(() => {
     const loadMeeting = async () => {
@@ -210,57 +349,113 @@ const MeetingParticipantPage: React.FC = () => {
     loadMeeting();
   }, [meetingId, navigate]);
 
-  const handleTimeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setSelectedTime(e.target.value);
+  const handleDateChange = (date: Date | null) => {
+    setSelectedDate(date);
   };
 
-  const handleTimePeriodChange = (period: 'AM' | 'PM') => {
-    setTimePeriod(period);
+  const handleTimeSlotClick = (time: string, day: string) => {
+    const slotKey = `${time}-${day}`;
+    const newSelectedSlots = new Set(selectedSlots);
+    
+    if (newSelectedSlots.has(slotKey)) {
+      newSelectedSlots.delete(slotKey);
+    } else {
+      newSelectedSlots.add(slotKey);
+    }
+    
+    setSelectedSlots(newSelectedSlots);
   };
 
-  const handleDateSelect = (date: Date) => {
-    setSelectedDates(prev => {
-      const dateStr = date.toISOString().split('T')[0];
-      const isSelected = prev.some(d => d.toISOString().split('T')[0] === dateStr);
+  const handleMouseDown = (time: string, day: string) => {
+    const slotKey = `${time}-${day}`;
+    const isSelected = selectedSlots.has(slotKey);
+    
+    setIsDragging(true);
+    setDragStart({ time, day, isSelected });
+  };
+
+  const handleMouseEnter = (time: string, day: string) => {
+    if (isDragging && dragStart) {
+      const newSelectedSlots = new Set(selectedSlots);
       
-      if (isSelected) {
-        return prev.filter(d => d.toISOString().split('T')[0] !== dateStr);
-      } else {
-        return [...prev, date];
+      // 드래그 범위 내의 모든 슬롯을 시작점의 선택 상태에 따라 설정
+      const startTimeIndex = allTimeSlots.indexOf(dragStart.time);
+      const endTimeIndex = allTimeSlots.indexOf(time);
+      const startDayIndex = weekDays.indexOf(dragStart.day);
+      const endDayIndex = weekDays.indexOf(day);
+      
+      const minTimeIndex = Math.min(startTimeIndex, endTimeIndex);
+      const maxTimeIndex = Math.max(startTimeIndex, endTimeIndex);
+      const minDayIndex = Math.min(startDayIndex, endDayIndex);
+      const maxDayIndex = Math.max(startDayIndex, endDayIndex);
+      
+      for (let timeIndex = minTimeIndex; timeIndex <= maxTimeIndex; timeIndex++) {
+        for (let dayIndex = minDayIndex; dayIndex <= maxDayIndex; dayIndex++) {
+          const slotKey = `${allTimeSlots[timeIndex]}-${weekDays[dayIndex]}`;
+          
+          if (dragStart.isSelected) {
+            // 시작점이 선택되어 있었다면 선택 해제
+            newSelectedSlots.delete(slotKey);
+          } else {
+            // 시작점이 선택되어 있지 않았다면 선택
+            newSelectedSlots.add(slotKey);
+          }
+        }
       }
-    });
+      
+      setSelectedSlots(newSelectedSlots);
+    }
   };
+
+  const handleMouseUp = () => {
+    setIsDragging(false);
+    setDragStart(null);
+  };
+
 
   const handleComplete = async () => {
-    if (!participantName.trim()) {
-      alert('이름을 입력해주세요.');
+    if (selectedSlots.size === 0) {
+      alert('가용 시간을 선택해주세요.');
       return;
     }
-    if (!participantEmail.trim()) {
-      alert('이메일을 입력해주세요.');
-      return;
-    }
-    if (selectedDates.length === 0) {
-      alert('가용 날짜를 선택해주세요.');
+    
+    if (!selectedDate) {
+      alert('날짜를 선택해주세요.');
       return;
     }
     
     setIsLoading(true);
     
     try {
-      // 가용시간 데이터 구성
-      const availability: Availability[] = selectedDates.map(date => ({
-        date: date.toISOString().split('T')[0],
-        timeSlots: [{
-          startTime: selectedTime,
-          endTime: selectedTime // 실제로는 종료 시간도 설정해야 함
-        }]
-      }));
+      // 선택된 시간 슬롯을 Availability 형태로 변환
+      const weekDates = getWeekDates(selectedDate);
+      const availability: Availability[] = [];
+      
+      // 각 요일별로 선택된 시간 슬롯을 그룹화
+      weekDays.forEach((day, dayIndex) => {
+        const daySlots = Array.from(selectedSlots)
+          .filter(slotKey => slotKey.endsWith(`-${day}`))
+          .map(slotKey => slotKey.split('-')[0])
+          .sort();
+        
+        if (daySlots.length > 0) {
+          const date = weekDates[dayIndex];
+          const timeSlots = daySlots.map(time => ({
+            startTime: time,
+            endTime: time // 30분 단위이므로 endTime은 startTime과 동일
+          }));
+          
+          availability.push({
+            date: date.toISOString().split('T')[0],
+            timeSlots
+          });
+        }
+      });
       
       // API를 통해 참여자 등록
       await addParticipant(meetingId, {
-        name: participantName,
-        email: participantEmail,
+        name: user?.name || user?.username || '참여자',
+        email: user?.email || '',
         availability
       });
       
@@ -268,7 +463,7 @@ const MeetingParticipantPage: React.FC = () => {
       navigate('/meeting/participant-complete', { 
         state: { 
           meetingId,
-          participantName
+          participantName: user?.name || user?.username || '참여자'
         } 
       });
     } catch (error) {
@@ -281,107 +476,117 @@ const MeetingParticipantPage: React.FC = () => {
 
   return (
     <PageContainer>
-      <ContentCard>
-        <Title>{meeting?.name || '모임'} 가용 시간을 설정해주세요</Title>
-        
-        <Description>
-          <p>선택된 기간의 가용 시간을 선택해주세요</p>
-          <p>해당하는 날짜 및 시간에 마우스를 꾹 누르고 드래그하면 선택할 수 있어요.</p>
-        </Description>
-        
-        <MainContent>
-          <LeftPanel>
-            <CalendarSection>
-              <CalendarTitle>참여자 정보</CalendarTitle>
-              <div style={{ marginBottom: spacing.md }}>
-                <TimeLabel>이름</TimeLabel>
-                <TimeInput
-                  type="text"
-                  value={participantName}
-                  onChange={(e) => setParticipantName(e.target.value)}
-                  placeholder="이름을 입력하세요"
-                />
-              </div>
-              <div style={{ marginBottom: spacing.md }}>
-                <TimeLabel>이메일</TimeLabel>
-                <TimeInput
-                  type="email"
-                  value={participantEmail}
-                  onChange={(e) => setParticipantEmail(e.target.value)}
-                  placeholder="이메일을 입력하세요"
-                />
-              </div>
-            </CalendarSection>
-            
-            <CalendarSection>
-              <CalendarTitle>날짜 선택</CalendarTitle>
-              <CalendarContainer>
-                <div style={{ 
-                  display: 'flex', 
-                  alignItems: 'center', 
-                  justifyContent: 'center',
-                  height: '200px',
-                  color: colors.textSecondary,
-                  fontSize: typography.fontSize.base
-                }}>
-                  달력 컴포넌트
-                </div>
-              </CalendarContainer>
-            </CalendarSection>
-            
-            <TimeSection>
-              <TimeLabel>시간</TimeLabel>
-              <TimeInput
-                type="time"
-                value={selectedTime}
-                onChange={handleTimeChange}
-              />
-              <TimeButtons>
-                <TimeButton 
-                  $active={timePeriod === 'AM'} 
-                  onClick={() => handleTimePeriodChange('AM')}
-                >
-                  AM
-                </TimeButton>
-                <TimeButton 
-                  $active={timePeriod === 'PM'} 
-                  onClick={() => handleTimePeriodChange('PM')}
-                >
-                  PM
-                </TimeButton>
-              </TimeButtons>
-            </TimeSection>
-          </LeftPanel>
+      <DatePickerStyles>
+        <ContentCard>
+          <Title>{meeting?.name || '모임'} 가용 시간을 설정해주세요</Title>
           
-          <RightPanel>
-            <ScheduleSection>
-              <ScheduleTitle>시간표</ScheduleTitle>
-              <ScheduleGrid>
-                <div style={{ textAlign: 'center' }}>
-                  <div style={{ 
-                    fontSize: typography.fontSize.lg,
-                    fontWeight: typography.fontWeight.medium,
-                    color: colors.textPrimary,
-                    marginBottom: spacing.sm
-                  }}>
-                    PRIMARY TEXT
-                  </div>
-                  <div style={{ 
-                    fontSize: typography.fontSize.base,
-                    color: colors.textSecondary
-                  }}>
-                    Secondary text
-                  </div>
-                </div>
-              </ScheduleGrid>
-            </ScheduleSection>
+          <Description>
+            <p>선택된 기간의 가용 시간을 선택해주세요</p>
+            <p>해당하는 날짜 및 시간에 마우스를 꾹 누르고 드래그하면 선택할 수 있어요.</p>
+          </Description>
+          
+          <MainContent>
+            <LeftPanel>
+              <CalendarSection>
+                <CalendarTitle>날짜 선택</CalendarTitle>
+                <CalendarContainer>
+                  <DatePickerWrapper>
+                    <DatePicker
+                      selected={selectedDate}
+                      onChange={(date: Date | null) => handleDateChange(date)}
+                      placeholderText="날짜를 선택하세요"
+                      dateFormat="yyyy-MM-dd"
+                      isClearable
+                      showPopperArrow={false}
+                      popperPlacement="bottom-start"
+                      className="custom-datepicker"
+                      inline
+                    />
+                  </DatePickerWrapper>
+                </CalendarContainer>
+              </CalendarSection>
+            </LeftPanel>
             
-            <CompleteButton onClick={handleComplete} disabled={isLoading}>
-              {isLoading ? '등록 중...' : '입력 완료하기'}
-            </CompleteButton>
-          </RightPanel>
-        </MainContent>
-      </ContentCard>
+            <RightPanel>
+              <TimeSection>
+                <CalendarTitle>시간 선택</CalendarTitle>
+                <TimeGridContainer>
+                  <ToggleButton onClick={() => setShowEarlyHours(!showEarlyHours)}>
+                    {showEarlyHours ? '오전 7시 이전 숨기기' : '오전 7시 이전 표시하기'}
+                  </ToggleButton>
+                  
+                  <TimeGrid
+                    onMouseUp={handleMouseUp}
+                    onMouseLeave={handleMouseUp}
+                  >
+                    <TimeSlotCell $isHeader>시간</TimeSlotCell>
+                    {weekDays.map((day, dayIndex) => {
+                      const weekDates = selectedDate ? getWeekDates(selectedDate) : [];
+                      const currentDate = weekDates[dayIndex];
+                      const dateStr = currentDate ? `${currentDate.getMonth() + 1}/${currentDate.getDate()}` : '';
+                      
+                      return (
+                        <TimeSlotCell key={day} $isHeader>
+                          <div style={{ lineHeight: '1.2' }}>
+                            <div>{day.toUpperCase()}</div>
+                            {dateStr && <div style={{ fontSize: '10px', marginTop: '2px', opacity: 0.7 }}>{dateStr}</div>}
+                          </div>
+                        </TimeSlotCell>
+                      );
+                    })}
+                    
+                    {/* 오전 7시 이전 시간 슬롯 (토글 가능) */}
+                    {showEarlyHours && earlyTimeSlots.map(time => (
+                      <React.Fragment key={time}>
+                        <TimeSlotCell $isHeader>{time}</TimeSlotCell>
+                        {weekDays.map((day) => {
+                          const slotKey = `${time}-${day}`;
+                          const isSelected = selectedSlots.has(slotKey);
+                          
+                          return (
+                            <TimeSlotCell
+                              key={slotKey}
+                              $isSelected={isSelected}
+                              onClick={() => handleTimeSlotClick(time, day)}
+                              onMouseDown={() => handleMouseDown(time, day)}
+                              onMouseEnter={() => handleMouseEnter(time, day)}
+                            />
+                          );
+                        })}
+                      </React.Fragment>
+                    ))}
+                    
+                    {/* 오전 7시 이후 시간 슬롯 */}
+                    {regularTimeSlots.map(time => (
+                      <React.Fragment key={time}>
+                        <TimeSlotCell $isHeader>{time}</TimeSlotCell>
+                        {weekDays.map((day) => {
+                          const slotKey = `${time}-${day}`;
+                          const isSelected = selectedSlots.has(slotKey);
+                          
+                          return (
+                            <TimeSlotCell
+                              key={slotKey}
+                              $isSelected={isSelected}
+                              onClick={() => handleTimeSlotClick(time, day)}
+                              onMouseDown={() => handleMouseDown(time, day)}
+                              onMouseEnter={() => handleMouseEnter(time, day)}
+                            />
+                          );
+                        })}
+                      </React.Fragment>
+                    ))}
+                  </TimeGrid>
+                </TimeGridContainer>
+              </TimeSection>
+              
+              <CompleteButton onClick={handleComplete} disabled={isLoading}>
+                {isLoading ? '저장 중...' : '가용시간 저장하기'}
+              </CompleteButton>
+            </RightPanel>
+          </MainContent>
+        </ContentCard>
+      </DatePickerStyles>
     </PageContainer>
   );
 };

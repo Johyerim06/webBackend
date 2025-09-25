@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import styled from 'styled-components';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { colors, typography, spacing, shadows } from '../styles/design-tokens';
 
@@ -145,6 +145,17 @@ const SuccessMessage = styled.div`
   border: 1px solid #BBF7D0;
 `;
 
+const InfoMessage = styled.div`
+  color: ${colors.primary};
+  font-size: ${typography.fontSize.sm};
+  text-align: center;
+  padding: ${spacing.sm};
+  background-color: #EFF6FF;
+  border-radius: 8px;
+  border: 1px solid #BFDBFE;
+  margin-bottom: ${spacing.lg};
+`;
+
 const SignupPage: React.FC = () => {
   const [formData, setFormData] = useState({
     name: '',
@@ -162,6 +173,11 @@ const SignupPage: React.FC = () => {
   });
   const { signup } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
+  
+  // 리다이렉트 경로 가져오기
+  const redirectTo = location.state?.redirectTo || '/';
+  const message = location.state?.message || '';
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -198,9 +214,9 @@ const SignupPage: React.FC = () => {
         password: formData.password,
       });
       setSuccess('회원가입이 완료되었습니다!');
-      // 회원가입 성공 후 홈페이지로 이동
+      // 회원가입 성공 후 리다이렉트 경로로 이동
       setTimeout(() => {
-        navigate('/');
+        navigate(redirectTo);
       }, 1500); // 1.5초 후 이동
     } catch (err: any) {
       console.log('Signup error:', err.response?.data);
@@ -278,6 +294,8 @@ const SignupPage: React.FC = () => {
             회원가입을 하시고, 우리밋(Ur Meet) 서비스를 이용해보세요!
           </Description>
         </TitleSection>
+        
+        {message && <InfoMessage>{message}</InfoMessage>}
         
         <Form onSubmit={handleSubmit}>
           <FieldContainer>

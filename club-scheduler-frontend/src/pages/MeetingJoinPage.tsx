@@ -95,9 +95,14 @@ const MeetingJoinPage: React.FC = () => {
     });
   };
 
-  const handleStartFresh = () => {
-    // 새로운 사용자로 모임 참여
-    navigate(`/meeting/participant?id=${meetingId}`);
+  const handleSignup = () => {
+    // 회원가입 페이지로 이동
+    navigate('/signup', { 
+      state: { 
+        redirectTo: `/meeting/participant?id=${meetingId}`,
+        message: '회원가입 후 모임에 참여하세요.'
+      } 
+    });
   };
 
   return (
@@ -112,11 +117,11 @@ const MeetingJoinPage: React.FC = () => {
         
         <ButtonContainer>
           <PrimaryButton onClick={handleLoginAndLoad}>
-            로그인하고 저장된 내용으로 가용시간을 불러올래요.
+            로그인하고 간편하게 등록할게요
           </PrimaryButton>
           
-          <SecondaryButton onClick={handleStartFresh}>
-            괜찮아요, 처음부터 다시 등록할게요
+          <SecondaryButton onClick={handleSignup}>
+            계정이 없어요. 회원가입을 진행할게요
           </SecondaryButton>
         </ButtonContainer>
       </ContentCard>
