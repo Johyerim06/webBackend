@@ -215,6 +215,7 @@ const SignupPage: React.FC = () => {
       });
       setSuccess('회원가입이 완료되었습니다!');
       // 회원가입 성공 후 리다이렉트 경로로 이동
+      console.log('회원가입 성공, 리다이렉트 경로:', redirectTo);
       setTimeout(() => {
         navigate(redirectTo);
       }, 1500); // 1.5초 후 이동

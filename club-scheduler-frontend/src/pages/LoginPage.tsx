@@ -173,7 +173,10 @@ const LoginPage: React.FC = () => {
     try {
       await login(credentials);
       // 로그인 성공 시 리다이렉트 경로로 이동
-      navigate(redirectTo);
+      console.log('로그인 성공, 리다이렉트 경로:', redirectTo);
+      setTimeout(() => {
+        navigate(redirectTo);
+      }, 100); // 약간의 지연을 두어 상태 업데이트를 보장
     } catch (err: any) {
       console.log('Login error:', err.response?.data);
       setError(err.response?.data?.error || '로그인에 실패했습니다.');

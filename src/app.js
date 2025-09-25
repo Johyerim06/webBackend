@@ -42,6 +42,7 @@ app.use(auth);
 app.use('/api/auth', authRouter);
 app.use('/api/club', clubRouter);
 app.use('/api/events', eventRouter);
+app.use('/api/meetings', eventRouter); // 모임 생성용 별칭
 app.use('/api/availability', availabilityRouter);
 app.use('/api/votes', voteRouter);
 app.use('/api/todos', todoRouter);
@@ -51,6 +52,7 @@ app.use('/api/schedules', scheduleRouter);
 app.use('/auth', authRouter);
 app.use('/club', clubRouter);
 app.use('/events', eventRouter);
+app.use('/meetings', eventRouter); // 모임 생성용 별칭
 app.use('/availability', availabilityRouter);
 app.use('/votes', voteRouter);
 app.use('/todos', todoRouter);

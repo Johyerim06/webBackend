@@ -92,7 +92,16 @@ eventRouter.post('/:id/participants', async (req, res) => {
       return res.status(404).json({ error: '모임을 찾을 수 없습니다.' });
     }
 
-    // 참여자 정보를 모임에 저장 (간단한 방식)
+    // participants 배열 초기화
+    if (!meeting.participants) {
+      meeting.participants = [];
+    }
+
+    // 이미 참여자인지 확인
+    const existingParticipantIndex = meeting.participants.findIndex(
+      p => p.email === email
+    );
+
     const participant = {
       name,
       email,
@@ -100,15 +109,23 @@ eventRouter.post('/:id/participants', async (req, res) => {
       joinedAt: new Date()
     };
 
-    // 모임의 participants 배열에 추가 (임시 저장)
-    if (!meeting.participants) {
-      meeting.participants = [];
+    if (existingParticipantIndex >= 0) {
+      // 기존 참여자라면 가용시간만 업데이트
+      meeting.participants[existingParticipantIndex].availability = availability || [];
+      meeting.participants[existingParticipantIndex].name = name; // 이름도 업데이트
+      console.log('기존 참여자 가용시간 업데이트:', email);
+    } else {
+      // 새 참여자라면 추가
+      meeting.participants.push(participant);
+      console.log('새 참여자 등록:', email);
     }
-    meeting.participants.push(participant);
+
     await meeting.save();
 
     res.status(201).json({
-      message: '참여자가 성공적으로 등록되었습니다.',
+      message: existingParticipantIndex >= 0 
+        ? '참여자 가용시간이 업데이트되었습니다.' 
+        : '참여자가 성공적으로 등록되었습니다.',
       participant: {
         name: participant.name,
         email: participant.email,

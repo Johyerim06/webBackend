@@ -277,6 +277,11 @@ const MeetingParticipantPage: React.FC = () => {
   const meetingId = searchParams.get('id') || '';
   const { user } = useAuth();
   
+  console.log('MeetingParticipantPage - URL search params:', searchParams.toString());
+  console.log('MeetingParticipantPage - meetingId from URL:', meetingId);
+  console.log('MeetingParticipantPage - meetingId type:', typeof meetingId);
+  console.log('MeetingParticipantPage - meetingId length:', meetingId.length);
+  
   const [meeting, setMeeting] = useState<Meeting | null>(null);
   const [selectedDate, setSelectedDate] = useState<Date | null>(new Date());
   const [selectedSlots, setSelectedSlots] = useState<Set<string>>(new Set());
@@ -336,9 +341,34 @@ const MeetingParticipantPage: React.FC = () => {
         return;
       }
       
+      // MongoDB ObjectId 형식 검증 (24자리 16진수)
+      const objectIdRegex = /^[0-9a-fA-F]{24}$/;
+      if (!objectIdRegex.test(meetingId)) {
+        console.error('잘못된 모임 ID 형식:', meetingId);
+        console.error('예상 형식: 24자리 16진수 문자열');
+        console.error('실제 값:', JSON.stringify(meetingId));
+        alert(`유효하지 않은 모임 링크입니다.\n모임 ID: ${meetingId}`);
+        navigate('/');
+        return;
+      }
+      
+      console.log('모임 ID 검증 통과:', meetingId);
+      
       try {
         const meetingData = await getMeeting(meetingId);
         setMeeting(meetingData);
+        
+        // 로그인된 사용자가 이미 참여자인지 확인
+        if (user && meetingData.participants) {
+          const isAlreadyParticipant = meetingData.participants.some(
+            (participant: any) => participant.email === user.email
+          );
+          
+          if (isAlreadyParticipant) {
+            console.log('이미 참여자로 등록된 사용자입니다.');
+            // 이미 참여자라면 기존 가용시간을 불러와서 표시할 수 있음
+          }
+        }
       } catch (error) {
         console.error('모임 정보 로드 오류:', error);
         alert('모임 정보를 불러오는데 실패했습니다.');
@@ -347,7 +377,20 @@ const MeetingParticipantPage: React.FC = () => {
     };
     
     loadMeeting();
-  }, [meetingId, navigate]);
+  }, [meetingId, navigate, user]);
+
+  // 로그인되지 않은 사용자 처리
+  useEffect(() => {
+    if (!user) {
+      console.log('로그인되지 않은 사용자, 로그인 페이지로 리다이렉트');
+      navigate('/login', { 
+        state: { 
+          redirectTo: `/meeting/participant?id=${meetingId}`,
+          message: '로그인 후 모임에 참여하세요.'
+        } 
+      });
+    }
+  }, [user, navigate, meetingId]);
 
   const handleDateChange = (date: Date | null) => {
     setSelectedDate(date);
@@ -414,6 +457,11 @@ const MeetingParticipantPage: React.FC = () => {
 
 
   const handleComplete = async () => {
+    if (!user) {
+      alert('로그인이 필요합니다.');
+      return;
+    }
+    
     if (selectedSlots.size === 0) {
       alert('가용 시간을 선택해주세요.');
       return;
@@ -454,8 +502,8 @@ const MeetingParticipantPage: React.FC = () => {
       
       // API를 통해 참여자 등록
       await addParticipant(meetingId, {
-        name: user?.name || user?.username || '참여자',
-        email: user?.email || '',
+        name: user.name || user.username || '참여자',
+        email: user.email || '',
         availability
       });
       
@@ -463,7 +511,7 @@ const MeetingParticipantPage: React.FC = () => {
       navigate('/meeting/participant-complete', { 
         state: { 
           meetingId,
-          participantName: user?.name || user?.username || '참여자'
+          participantName: user.name || user.username || '참여자'
         } 
       });
     } catch (error) {
