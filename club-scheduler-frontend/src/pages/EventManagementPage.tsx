@@ -424,6 +424,60 @@ const EventManagementPage: React.FC = () => {
     loadExistingSchedule();
   }, []);
 
+  // selectedDate가 변경될 때마다 해당 주의 개인일정 데이터를 불러옴
+  useEffect(() => {
+    if (selectedDate) {
+      loadWeekSchedule(selectedDate);
+    }
+  }, [selectedDate]);
+
+  // 선택된 날짜의 주에 해당하는 개인일정 데이터를 불러오는 함수
+  const loadWeekSchedule = async (date: Date) => {
+    try {
+      const personalEvents = await getPersonalEvents();
+      if (!personalEvents || personalEvents.length === 0) {
+        // 개인일정이 없으면 빈 상태로 설정
+        setSelectedSlots(new Set());
+        return;
+      }
+
+      const personalEvent = personalEvents[0];
+      const weekDates = getWeekDates(date);
+      
+      // 해당 주의 날짜들 중에서 개인일정에 저장된 시간 슬롯만 필터링
+      const weekTimeSlots = new Set<string>();
+      
+      if (personalEvent.timeSlots) {
+        personalEvent.timeSlots.forEach(slot => {
+          // 해당 요일이 이번 주에 포함되는지 확인
+          const dayIndex = weekDays.indexOf(slot.day);
+          if (dayIndex !== -1) {
+            const weekDate = weekDates[dayIndex];
+            // 해당 날짜가 개인일정의 selectedDates에 포함되는지 확인
+            const isDateInPersonalEvent = personalEvent.selectedDates?.some(selectedDate => {
+              const dateStr = new Date(selectedDate).toISOString().split('T')[0];
+              const weekDateStr = weekDate.toISOString().split('T')[0];
+              return dateStr === weekDateStr;
+            });
+            
+            if (isDateInPersonalEvent) {
+              weekTimeSlots.add(`${slot.time}-${slot.day}`);
+            }
+          }
+        });
+      }
+      
+      setSelectedSlots(weekTimeSlots);
+      console.log('주간 일정 로드:', {
+        selectedDate: date.toISOString().split('T')[0],
+        weekDates: weekDates.map(d => d.toISOString().split('T')[0]),
+        loadedSlots: Array.from(weekTimeSlots)
+      });
+    } catch (error) {
+      console.error('주간 일정 로드 오류:', error);
+    }
+  };
+
   // 00:00부터 24:00까지 30분 단위로 시간 슬롯 생성
   const generateTimeSlots = () => {
     const slots = [];
@@ -604,11 +658,6 @@ const EventManagementPage: React.FC = () => {
   };
 
   const handleCompleteInput = async () => {
-    if (!existingSchedule) {
-      alert('적용할 시간표가 없습니다. 먼저 시간표를 설정해주세요.');
-      return;
-    }
-
     if (!startDate || !endDate) {
       alert('시작 날짜와 종료 날짜를 선택해주세요.');
       return;
@@ -621,38 +670,62 @@ const EventManagementPage: React.FC = () => {
 
     try {
       // 선택된 시간 슬롯을 TimeSlot 형태로 변환
-      const timeSlots = Array.from(selectedSlots).map(slotKey => {
+      const newTimeSlots = Array.from(selectedSlots).map(slotKey => {
         const [time, day] = slotKey.split('-');
         return { time, day };
       });
 
-      // 날짜 범위 생성
-      const selectedDates = [];
+      // 선택된 날짜 범위 생성
+      const newSelectedDates: string[] = [];
       const currentDate = new Date(startDate);
       while (currentDate <= endDate) {
-        selectedDates.push(currentDate.toISOString().split('T')[0]);
+        newSelectedDates.push(currentDate.toISOString().split('T')[0]);
         currentDate.setDate(currentDate.getDate() + 1);
       }
+
+      // 사용자 이름으로 개인일정 이름 생성
+      const personalEventName = user?.name ? `${user.name}의 일정` : '개인 일정';
 
       // 기존 PersonalEvent가 있는지 확인
       const personalEvents = await getPersonalEvents();
       
       if (personalEvents && personalEvents.length > 0) {
-        // 기존 PersonalEvent가 있으면 업데이트
+        // 기존 PersonalEvent가 있으면 병합
         const existingPersonalEvent = personalEvents[0];
-        await updatePersonalEvent(existingPersonalEvent.id, {
-          name: existingSchedule.name,
-          timeSlots,
-          selectedDates
+        const existingTimeSlots = existingPersonalEvent.timeSlots || [];
+        const existingSelectedDates = existingPersonalEvent.selectedDates || [];
+        
+        // 기존 시간 슬롯에서 새로 선택된 날짜 범위에 해당하는 슬롯들을 제거
+        const filteredExistingSlots = existingTimeSlots.filter(slot => {
+          const dayIndex = weekDays.indexOf(slot.day);
+          if (dayIndex !== -1 && selectedDate) {
+            const weekDates = getWeekDates(selectedDate);
+            const weekDate = weekDates[dayIndex];
+            const weekDateStr = weekDate.toISOString().split('T')[0];
+            return !newSelectedDates.includes(weekDateStr);
+          }
+          return true;
         });
-        console.log('기존 개인 일정 업데이트 완료');
+        
+        // 기존 슬롯 + 새로운 슬롯을 합치기
+        const mergedTimeSlots = [...filteredExistingSlots, ...newTimeSlots];
+        
+        // 기존 날짜 + 새로운 날짜를 합치기 (중복 제거)
+        const allSelectedDates = Array.from(new Set([...existingSelectedDates, ...newSelectedDates]));
+        
+        await updatePersonalEvent(existingPersonalEvent.id, {
+          name: personalEventName,
+          timeSlots: mergedTimeSlots,
+          selectedDates: allSelectedDates
+        });
+        console.log('기존 개인 일정 병합 완료');
       } else {
         // 기존 PersonalEvent가 없으면 새로 생성
         await createPersonalEvent({
-          name: existingSchedule.name,
-          timeSlots,
-          selectedDates,
-          originalScheduleId: existingSchedule.id
+          name: personalEventName,
+          timeSlots: newTimeSlots,
+          selectedDates: newSelectedDates,
+          originalScheduleId: existingSchedule?.id
         });
         console.log('새 개인 일정 생성 완료');
       }
@@ -757,7 +830,7 @@ const EventManagementPage: React.FC = () => {
                         return (
                           <TimeSlotCell
                             key={slotKey}
-                            $isSelected={isSelected && shouldShowPattern}
+                            $isSelected={isSelected}
                             onClick={() => handleTimeSlotClick(time, day)}
                             onMouseDown={() => handleMouseDown(time, day)}
                             onMouseEnter={() => handleMouseEnter(time, day)}
@@ -786,7 +859,7 @@ const EventManagementPage: React.FC = () => {
                         return (
                           <TimeSlotCell
                             key={slotKey}
-                            $isSelected={isSelected && shouldShowPattern}
+                            $isSelected={isSelected}
                             onClick={() => handleTimeSlotClick(time, day)}
                             onMouseDown={() => handleMouseDown(time, day)}
                             onMouseEnter={() => handleMouseEnter(time, day)}
