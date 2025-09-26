@@ -4,7 +4,7 @@ import styled from 'styled-components';
 import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
 import { colors, typography, spacing, shadows } from '../styles/design-tokens';
-import { getMeeting, addParticipant } from '../services/meetingService';
+import { getMeeting, addParticipant, saveAvailability, getAvailability } from '../services/meetingService';
 import { Meeting, Availability } from '../services/meetingService';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -341,11 +341,13 @@ const MeetingParticipantPage: React.FC = () => {
         return;
       }
       
-      // MongoDB ObjectId 형식 검증 (24자리 16진수)
-      const objectIdRegex = /^[0-9a-fA-F]{24}$/;
-      if (!objectIdRegex.test(meetingId)) {
+      // Meeting ID 형식 검증 (8자리 랜덤 문자열 또는 24자리 MongoDB ObjectId)
+      const shortIdRegex = /^[a-z0-9]{8}$/; // 8자리 랜덤 ID
+      const objectIdRegex = /^[0-9a-fA-F]{24}$/; // 24자리 MongoDB ObjectId
+      
+      if (!shortIdRegex.test(meetingId) && !objectIdRegex.test(meetingId)) {
         console.error('잘못된 모임 ID 형식:', meetingId);
-        console.error('예상 형식: 24자리 16진수 문자열');
+        console.error('예상 형식: 8자리 랜덤 문자열 또는 24자리 16진수 문자열');
         console.error('실제 값:', JSON.stringify(meetingId));
         alert(`유효하지 않은 모임 링크입니다.\n모임 ID: ${meetingId}`);
         navigate('/');
@@ -378,6 +380,49 @@ const MeetingParticipantPage: React.FC = () => {
     
     loadMeeting();
   }, [meetingId, navigate, user]);
+
+  // 기존 가용시간 불러오기
+  const loadExistingAvailability = async () => {
+    if (!user || !meetingId) return;
+    
+    try {
+      const availabilityData = await getAvailability(meetingId);
+      if (availabilityData && availabilityData.availability && availabilityData.availability.length > 0) {
+        console.log('기존 가용시간 불러옴:', availabilityData);
+        
+        // 기존 가용시간을 selectedSlots으로 변환
+        const slots = new Set<string>();
+        
+        availabilityData.availability.forEach((avail: Availability) => {
+          const dateObj = new Date(avail.date);
+          const dayOfWeek = dateObj.getDay(); // 0=일요일, 1=월요일, ..., 6=토요일
+          const dayName = weekDays[dayOfWeek];
+          
+          avail.timeSlots.forEach(timeSlot => {
+            const slotKey = `${timeSlot.startTime}-${dayName}`;
+            slots.add(slotKey);
+          });
+        });
+        
+        setSelectedSlots(slots);
+        
+        // 첫 번째 날짜로 캘린더 설정
+        if (availabilityData.availability.length > 0) {
+          setSelectedDate(new Date(availabilityData.availability[0].date));
+        }
+      }
+    } catch (error) {
+      console.log('기존 가용시간 없음 또는 불러오기 실패:', error);
+      // 오류가 발생해도 계속 진행 (처음 방문하는 경우)
+    }
+  };
+
+  // 사용자 로그인 후 기존 가용시간 불러오기
+  useEffect(() => {
+    if (user && meetingId && meeting) {
+      loadExistingAvailability();
+    }
+  }, [user, meetingId, meeting]);
 
   // 로그인되지 않은 사용자 처리
   useEffect(() => {
@@ -500,11 +545,29 @@ const MeetingParticipantPage: React.FC = () => {
         }
       });
       
-      // API를 통해 참여자 등록
-      await addParticipant(meetingId, {
+      // 1. Availability 컬렉션에 저장 (eventId, userId, personalEventId 포함)
+      try {
+        await saveAvailability(meetingId, availability);
+        console.log('Availability 컬렉션에 저장 완료');
+      } catch (availabilityError) {
+        console.error('Availability 저장 오류:', availabilityError);
+        // 실패해도 계속 진행
+      }
+      
+      // 2. Meeting의 participants에도 저장 (기존 로직 유지)
+      const participantData = {
         name: user.name || user.username || '참여자',
-        email: user.email || '',
+        email: user.email || `user_${user.id}@temp.com`, // 빈 이메일 대신 임시 이메일 사용
         availability
+      };
+      
+      console.log('참여자 데이터:', participantData);
+      await addParticipant(meetingId, participantData);
+      
+      console.log('가용시간 저장 완료:', {
+        meetingId,
+        userId: user.id,
+        availabilityCount: availability.length
       });
       
       // 완료 페이지로 이동

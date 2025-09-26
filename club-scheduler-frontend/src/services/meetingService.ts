@@ -151,3 +151,38 @@ export const getParticipants = async (meetingId: string): Promise<Participant[]>
   
   return response.json();
 };
+
+// 가용시간 저장 (새로운 API)
+export const saveAvailability = async (meetingId: string, availability: Availability[], personalEventId?: string): Promise<{personalEventId?: string}> => {
+  const response = await fetch(`${API_BASE_URL}/availability/meeting/${meetingId}`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    credentials: 'include',
+    body: JSON.stringify({
+      availability,
+      personalEventId
+    }),
+  });
+  
+  if (!response.ok) {
+    const errorData = await response.json();
+    throw new Error(errorData.error || '가용시간 저장에 실패했습니다.');
+  }
+  
+  return response.json();
+};
+
+// 가용시간 조회
+export const getAvailability = async (meetingId: string): Promise<{availability: Availability[]}> => {
+  const response = await fetch(`${API_BASE_URL}/availability/meeting/${meetingId}`, {
+    credentials: 'include',
+  });
+  
+  if (!response.ok) {
+    throw new Error('가용시간 조회에 실패했습니다.');
+  }
+  
+  return response.json();
+};
