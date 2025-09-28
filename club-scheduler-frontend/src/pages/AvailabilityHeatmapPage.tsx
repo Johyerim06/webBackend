@@ -296,7 +296,7 @@ const AvailabilityHeatmapPage: React.FC = () => {
 // Styled Components
 const Container = styled.div`
   min-height: 100vh;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: #ffffff;
   padding: 20px;
 `;
 
@@ -312,25 +312,26 @@ const LoadingContainer = styled.div`
 const Header = styled.div`
   text-align: center;
   margin-bottom: 30px;
-  color: white;
+  color: #333333;
 `;
 
 const Title = styled.h1`
   font-size: 28px;
   font-weight: 700;
   margin-bottom: 8px;
+  color: #333333;
 `;
 
 const SubTitle = styled.p`
   font-size: 16px;
-  opacity: 0.9;
+  color: #666666;
   margin: 0;
 `;
 
 const HeatmapContainer = styled.div`
   background: white;
   border-radius: 12px;
-  padding: 20px;
+  padding: 16px;
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
   margin-bottom: 20px;
   overflow-x: auto;
@@ -338,39 +339,47 @@ const HeatmapContainer = styled.div`
 
 const HeatmapGrid = styled.div<{ dateCount: number }>`
   display: grid;
-  grid-template-columns: 80px repeat(${props => props.dateCount}, 1fr);
-  gap: 2px;
-  min-width: 600px;
+  grid-template-columns: 60px repeat(${props => props.dateCount}, 1fr);
+  gap: 1px;
+  background-color: #e9ecef;
+  border: 1px solid #e9ecef;
+  border-radius: 8px;
+  overflow: hidden;
+  max-width: 800px;
+  margin: 0 auto;
 `;
 
 const TimeHeader = styled.div``;
 
 const DateHeader = styled.div`
-  padding: 12px 8px;
+  padding: 8px 4px;
   text-align: center;
   font-weight: 600;
-  font-size: 14px;
+  font-size: 12px;
   background: #f8f9fa;
-  border-radius: 4px;
+  color: #495057;
+  min-height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 `;
 
 const TimeLabel = styled.div`
-  padding: 8px;
+  padding: 4px 2px;
   text-align: center;
   font-weight: 500;
-  font-size: 12px;
+  font-size: 11px;
   background: #f8f9fa;
-  border-radius: 4px;
+  color: #495057;
+  min-height: 30px;
   display: flex;
   align-items: center;
   justify-content: center;
 `;
 
 const HeatmapCell = styled.div<{ intensity: number }>`
-  aspect-ratio: 1;
+  min-height: 30px;
   background-color: ${props => getHeatmapColor(props.intensity)};
-  border: 1px solid #e9ecef;
-  border-radius: 4px;
   cursor: pointer;
   transition: all 0.2s ease;
   display: flex;
@@ -379,8 +388,8 @@ const HeatmapCell = styled.div<{ intensity: number }>`
   position: relative;
 
   &:hover {
-    transform: scale(1.05);
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+    transform: scale(1.02);
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
     z-index: 1;
   }
 `;
@@ -394,7 +403,7 @@ const CellContent = styled.div`
 `;
 
 const UserCount = styled.span`
-  font-size: 10px;
+  font-size: 9px;
   font-weight: 600;
   color: #495057;
 `;
