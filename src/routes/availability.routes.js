@@ -120,7 +120,7 @@ availabilityRouter.post('/meeting/:meetingId', auth, async (req, res) => {
   }
 });
 
-// 가용시간 조회
+// 가용시간 조회 (개별 사용자)
 availabilityRouter.get('/meeting/:meetingId', auth, async (req, res) => {
   try {
     const userId = req.userId; // auth 미들웨어에서 설정된 userId 사용
@@ -135,5 +135,28 @@ availabilityRouter.get('/meeting/:meetingId', auth, async (req, res) => {
   } catch (error) {
     console.error('[AVAILABILITY] Get error:', error);
     res.status(500).json({ error: '가용시간 조회에 실패했습니다.' });
+  }
+});
+
+// 이벤트별 모든 가용시간 조회 (히트맵용)
+availabilityRouter.get('/event/:eventsID', async (req, res) => {
+  try {
+    const eventsID = req.params.eventsID;
+    
+    console.log('[AVAILABILITY] Getting all availabilities for eventsID:', eventsID);
+    
+    const availabilities = await Availability.find({
+      eventsID: eventsID
+    }).populate('userId', 'name username email');
+    
+    console.log('[AVAILABILITY] Found availabilities:', availabilities.length);
+    
+    res.json({
+      success: true,
+      availabilities: availabilities
+    });
+  } catch (error) {
+    console.error('[AVAILABILITY] Get event availabilities error:', error);
+    res.status(500).json({ error: '이벤트 가용시간 조회에 실패했습니다.' });
   }
 });

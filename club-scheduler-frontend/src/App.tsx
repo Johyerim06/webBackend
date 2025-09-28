@@ -16,6 +16,7 @@ import MeetingCompletePage from './pages/MeetingCompletePage';
 import MeetingJoinPage from './pages/MeetingJoinPage';
 import MeetingParticipantPage from './pages/MeetingParticipantPage';
 import MeetingParticipantCompletePage from './pages/MeetingParticipantCompletePage';
+import AvailabilityHeatmapPage from './pages/AvailabilityHeatmapPage';
 import { GlobalStyle } from './styles/GlobalStyle';
 
 const AppRoutes: React.FC = () => {
@@ -78,6 +79,10 @@ const AppRoutes: React.FC = () => {
       <Route 
         path="/meeting/participant-complete" 
         element={<MeetingParticipantCompletePage />} 
+      />
+      <Route 
+        path="/availability/heatmap" 
+        element={<AvailabilityHeatmapPage />} 
       />
       <Route path="*" element={<Navigate to="/" />} />
     </Routes>

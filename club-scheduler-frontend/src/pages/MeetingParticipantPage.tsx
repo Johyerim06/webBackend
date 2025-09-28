@@ -574,6 +574,7 @@ const MeetingParticipantPage: React.FC = () => {
       navigate('/meeting/participant-complete', { 
         state: { 
           meetingId,
+          eventsID: meetingId, // meetingId를 eventsID로도 사용
           participantName: user.name || user.username || '참여자'
         } 
       });

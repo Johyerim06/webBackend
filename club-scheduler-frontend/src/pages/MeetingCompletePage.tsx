@@ -142,6 +142,16 @@ const MeetingCompletePage: React.FC = () => {
     navigate('/');
   };
 
+  const handleViewHeatmap = () => {
+    // meetingData에서 eventsID 추출 (meetingData._id 사용)
+    const eventsID = meetingData?._id;
+    if (eventsID) {
+      navigate(`/availability/heatmap?eventsID=${eventsID}`);
+    } else {
+      alert('히트맵을 보기 위한 데이터가 없습니다.');
+    }
+  };
+
   return (
     <PageContainer>
       <ContentCard>
@@ -163,9 +173,14 @@ const MeetingCompletePage: React.FC = () => {
           </LinkContainer>
         </LinkSection>
 
-        <HomeButton onClick={handleGoHome}>
-          홈화면으로 돌아가기
-        </HomeButton>
+        <div style={{ display: 'flex', gap: '12px', justifyContent: 'center' }}>
+          <HomeButton onClick={handleViewHeatmap} style={{ backgroundColor: '#28a745', flex: 1 }}>
+            가용시간 히트맵 보기
+          </HomeButton>
+          <HomeButton onClick={handleGoHome} style={{ flex: 1 }}>
+            홈화면으로 돌아가기
+          </HomeButton>
+        </div>
       </ContentCard>
     </PageContainer>
   );
